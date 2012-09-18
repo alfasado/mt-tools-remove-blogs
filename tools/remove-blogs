@@ -1,0 +1,77 @@
+#!/usr/bin/perl
+package MT::Tool::RemoveBlogs;
+use strict;
+use warnings;
+use File::Spec;
+use FindBin;
+use lib map File::Spec->catdir($FindBin::Bin, File::Spec->updir, $_), qw/lib extlib/;
+use base qw( MT::Tool );
+
+sub usage { '--blog_id <comma,separated,blog_ids>' }
+
+sub help {
+    return q {
+        Remove Blogs.
+
+        --blog_id <comma,separated,blog_ids>
+                      Required: 1,2,3...
+    };
+}
+
+my ( $blog_id );
+
+sub options {
+    return (
+        'blog_id=s' => \$blog_id,
+    );
+}
+
+sub main {
+    my $class = shift;
+    my ( $verbose ) = $class->SUPER::main( @_ );
+    my @blog_ids;
+    my $terms;
+    my $blog_terms;
+    if ( $blog_id ) {
+        @blog_ids = split( /,/, $blog_id );
+        $blog_terms->{ id } = \@blog_ids;
+        $terms->{ blog_id } = \@blog_ids;
+    } else {
+        print "--blog_id is required.\n";
+        return 1;
+    }
+    if ( MT->version_number > 4 ) {
+        $blog_terms->{ class } = [ 'blog', 'website' ];
+    }
+    my @blogs = MT->model( 'blog' )->load( $blog_terms );
+    for my $blog ( @blogs ) {
+        my $site_path = $blog->site_path;
+        # TODO::Remove Files.
+        $blog->remove or die $blog->errorstr;
+        my $scope = '%:blog:' . $blog->id;
+        my @plugindata = MT->model( 'plugindata' )->load( { key => { like => $scope } } );
+        for my $data ( @plugindata ) {
+            $data->remove or die $data->errorstr;
+        }
+    }
+    my @models = __models();
+    for my $model( @models ) {
+        if ( my $class = MT->model( $model ) ) {
+            if ( $class->has_column( 'blog_id' ) ) {
+                my @objects = $class->load( $terms );
+                for my $object ( @objects ) {
+                    $object->remove or die $object->errorstr;
+                }
+            }
+        }
+    }
+    1;
+}
+
+sub __models {
+    my @matches; my $model = MT->registry( 'object_types' );
+    for my $m ( keys %$model ) { if ( $m !~ /\Q.\E/ ) { push @matches, $m; } }
+    return @matches;
+}
+
+__PACKAGE__->main() unless caller;
