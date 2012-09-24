@@ -60,6 +60,7 @@ sub main {
             if ( $class->has_column( 'blog_id' ) ) {
                 my @objects = $class->load( $terms );
                 for my $object ( @objects ) {
+                    next unless $object;
                     $object->remove or die $object->errstr;
                 }
             }
