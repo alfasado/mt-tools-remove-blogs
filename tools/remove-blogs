@@ -47,11 +47,11 @@ sub main {
     for my $blog ( @blogs ) {
         my $site_path = $blog->site_path;
         # TODO::Remove Files.
-        $blog->remove or die $blog->errorstr;
+        $blog->remove or die $blog->errstr;
         my $scope = '%:blog:' . $blog->id;
         my @plugindata = MT->model( 'plugindata' )->load( { key => { like => $scope } } );
         for my $data ( @plugindata ) {
-            $data->remove or die $data->errorstr;
+            $data->remove or die $data->errstr;
         }
     }
     my @models = __models();
@@ -60,7 +60,7 @@ sub main {
             if ( $class->has_column( 'blog_id' ) ) {
                 my @objects = $class->load( $terms );
                 for my $object ( @objects ) {
-                    $object->remove or die $object->errorstr;
+                    $object->remove or die $object->errstr;
                 }
             }
         }
